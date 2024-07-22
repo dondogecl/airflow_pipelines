@@ -39,3 +39,9 @@ Make sure to always use --no-cache when changing any dependencies or packages.
 
 ## Run the containers
 ```docker compose up```
+
+
+# Known issues
+
+- Make sure to add each Azure dependency individually, adding the package "azure" to the python packages to install has been deprecated.
+- Port conflict: sometimes the Postgres or Airlow webserver ports are already in use, in that case change it accordingly to one that is available in the machine where they will run. I have on purpose changed the default `:8080` to `:8081`
