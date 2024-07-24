@@ -1,3 +1,10 @@
+# Overview
+
+This project aims to develop a fully functional and reusable data pipeline to ingest data from APIs into GCP.
+
+--tbd--
+
+
 # Setup and installation instructions
 
 ## first time: folders
