@@ -1,3 +1,10 @@
+# Overview
+
+This project aims to develop a fully functional and reusable data pipeline to ingest data from APIs into GCP.
+
+--tbd--
+
+
 # Setup and installation instructions
 
 ## first time: folders
@@ -40,6 +47,16 @@ Make sure to always use --no-cache when changing any dependencies or packages.
 ## Run the containers
 ```docker compose up```
 
+
+## Test a new task (without executing all the tasks in the DAG)
+
+Get into the scheduler docker container
+
+ie: `docker compose exec -it airflow_pipelines-airflow-scheduler-1 /bin/bash`
+
+Run the task ID manually (provide the dag_id, task_id and a back date)
+
+`airflow tasks test example_bash_operator runme_0 2024-08-31`
 
 # Known issues
 
