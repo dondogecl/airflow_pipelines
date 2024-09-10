@@ -48,6 +48,16 @@ Make sure to always use --no-cache when changing any dependencies or packages.
 ```docker compose up```
 
 
+## Test a new task (without executing all the tasks in the DAG)
+
+Get into the scheduler docker container
+
+ie: `docker compose exec -it airflow_pipelines-airflow-scheduler-1 /bin/bash`
+
+Run the task ID manually (provide the dag_id, task_id and a back date)
+
+`airflow tasks test example_bash_operator runme_0 2024-08-31`
+
 # Known issues
 
 - Make sure to add each Azure dependency individually, adding the package "azure" to the python packages to install has been deprecated.
