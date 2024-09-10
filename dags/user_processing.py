@@ -2,29 +2,46 @@ import logging
 from datetime import datetime
 import json
 from pandas import json_normalize
+import os
 
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 # Utility functions
 
 def _process_user(ti):
     """ Function that handles user data that comes in JSON format """
     user = ti.xcom_pull(task_ids="extract_user")
-    user = user['results'][0]
-    processed_user = json_normalize({
-        'firstname' : user['name']['first'],
-        'lastname' : user['name']['last'],
-        'country' : user['location']['country'],
-        'username' : user['login']['username'],
-        'password' : user['login']['password'],
-        'email' : user['email']
-    })
-    processed_user.to_csv('/tmp/processed_user.csv', index=None, header=False)
-    logging.info(f"Processed user: {user['login']['username']}")
+    if 'results' in user:
+        user = user['results'][0]
+        processed_user = json_normalize({
+            'firstname' : user['name']['first'],
+            'lastname' : user['name']['last'],
+            'country' : user['location']['country'],
+            'username' : user['login']['username'],
+            'password' : user['login']['password'],
+            'email' : user['email']
+        })
+        processed_user.to_csv('/tmp/processed_user.csv', index=None, header=False)
+        logging.info(f"Processed user: {user['login']['username']}")
+    else:
+        logging.error("User data was not received correctly")
+        raise ValueError("JSON Data is incomplete or format is incorrect")
+
+def _store_user():
+    """ Saves the retrieved data to the psql Database using the psql hook """
+    hook = PostgresHook(postgres_conn_id='awspsql')
+    if os.path.exists('/tmp/processed_user.csv'):
+        hook.copy_expert(sql="COPY users FROM stdin WITH DELIMITER AS ','",
+                        filename='/tmp/processed_user.csv')
+        logging.info('Saved data to DB')
+        os.remove('/tmp/processed_user.csv')
+        logging.info('Removed temporary files')
+        
 
 # Configure the DAG
 with DAG('user_processing', start_date=datetime(2024,1,1), schedule_interval='@daily', catchup=False) as dag:
@@ -68,5 +85,11 @@ with DAG('user_processing', start_date=datetime(2024,1,1), schedule_interval='@d
         python_callable = _process_user
     )
 
+    # save data to our DB
+    store_user = PythonOperator(
+        task_id = 'store_user',
+        python_callable = _store_user
+    )
+
     # dependencies
-    create_table >> is_api_available >> extract_user >> process_user
+    create_table >> is_api_available >> extract_user >> process_user >> store_user
