@@ -10,8 +10,8 @@ local_file = Dataset("/tmp/my_file.txt")
 # Dag
 with DAG(
     dag_id = "producer",
-    schedule = "@daily",
-    start_date = datetime(2025,1,1),
+    schedule = "5 * * * *",
+    start_date = datetime(2024,1,1),
     catchup = False
 ):
     
