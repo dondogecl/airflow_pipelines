@@ -13,6 +13,8 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 # Utility functions
 
+conn_id = 'gcpsql'
+
 def _process_user(ti):
     """ Function that handles user data that comes in JSON format """
     user = ti.xcom_pull(task_ids="extract_user")
@@ -34,7 +36,7 @@ def _process_user(ti):
 
 def _store_user():
     """ Saves the retrieved data to the psql Database using the psql hook """
-    hook = PostgresHook(postgres_conn_id='awspsql')
+    hook = PostgresHook(postgres_conn_id=conn_id)
     if os.path.exists('/tmp/processed_user.csv'):
         hook.copy_expert(sql="COPY users FROM stdin WITH DELIMITER AS ','",
                         filename='/tmp/processed_user.csv')
@@ -49,7 +51,7 @@ with DAG('user_processing', start_date=datetime(2024,1,1), schedule_interval='@d
     # task to create the user table
     create_table = PostgresOperator(
         task_id='create_table',
-        postgres_conn_id='awspsql',
+        postgres_conn_id=conn_id,
         sql='''
             CREATE TABLE IF NOT EXISTS users(
                 firstname TEXT NOT NULL,
