@@ -46,7 +46,11 @@ def _store_user():
         
 
 # Configure the DAG
-with DAG('user_processing', start_date=datetime(2024,1,1), schedule_interval='@daily', catchup=False) as dag:
+with DAG('user_processing', 
+        start_date=datetime(2024,1,1), 
+        schedule_interval='*/10 * * * *', 
+        catchup=False
+        ) as dag:
     
     # task to create the user table
     create_table = PostgresOperator(
