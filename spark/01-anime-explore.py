@@ -1,16 +1,26 @@
 import os, sys
+from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
 
 
 if __name__ == "__main__":
+    load_dotenv()
     # check if datasets are available
+    animes = os.getenv('DATASET_ANIMES')
+    log4j_properties_path = os.getenv('LOG4J_PROPIERTIES')
+    output_path = os.getenv('OUTPUT_DIRECTORY')
+
+
     print(f"datasets available: {os.listdir('../../datasets/kaggle_anime-recommendation-db')}")
     
     try:
-        spark = SparkSession.builder.appName('pyspark').getOrCreate()
+        spark = SparkSession.builder.\
+            appName('pyspark').\
+                config("spark.driver.extraJavaOptions", f"-Dlog4j.configuration=file:{log4j_properties_path}")\
+                    .getOrCreate()
         # Set log level to WARN
-        spark.sparkContext.setLogLevel("WARN")
+        #spark.sparkContext.setLogLevel("WARN")
     except Exception as e:
         print(f"Problem loading Spark, details:\n{e}")
         print("Shutting down...")
@@ -18,7 +28,6 @@ if __name__ == "__main__":
 
 
     # read dataframe data
-    animes = '../../datasets/kaggle_anime-recommendation-db/anime.csv'
     df = spark.read.format('csv')\
     .option('header', 'true')\
     .option('inferSchema', 'true')\
@@ -36,6 +45,14 @@ if __name__ == "__main__":
                 )
     
     count_animes.show(n=10, truncate=False)
+
+    output_path = os.path.join(output_path,'result_count_animes')
+    
+    count_animes.write\
+        .format('csv')\
+        .option('header', 'true')\
+        .mode('overwrite')\
+        .save(output_path)
 
     # End the Spark Session
     try:

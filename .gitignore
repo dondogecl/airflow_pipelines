@@ -167,3 +167,4 @@ logs/
 airflow/airflow.cfg
 config/
 __pycache__/
+spark/output/*
