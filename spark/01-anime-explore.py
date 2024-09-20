@@ -65,10 +65,11 @@ if __name__ == "__main__":
     bucket = os.getenv('BUCKET', None)
 
     # check if the dataset is accessible
-    if debug:
-        logging.info(f"DEBUG MODE: ON")
+    if not debug:
+        logging.info(f"DEBUG MODE: OFF")
         input_validation = verify_path_gcs(bucket_id=bucket, path=dataset_path)
     else:
+        logging.info(f"DEBUG MODE: ON")
         input_validation = verify_path_local(path=dataset_path, filename=filename)
     if not input_validation:
         end_execution("Dataset validation failed, exiting job.") 
