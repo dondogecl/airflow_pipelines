@@ -29,8 +29,28 @@ def verify_path_gcs(bucket_id: str, path: str) -> bool:
         return False
     logging.info('File found at the specified GCS location: {path}')
     return True
+
+def verify_path_local(path: str, filename: str) -> bool:
+    """Verifies if the provided bucket and path exist.
     
-        
+    Args:
+        path (str): The location of the files
+        filename (str): name of the file to validate
+    Returns:
+        bool : True only if the location is valid."""
+    if not os.path.exists(path):
+        logging.error(f"Requested dataset path - {path} - was not found.")
+        return False
+    elif filename not in os.listdir(path):
+        logging.error(f"Requested file - {filename} - was not found at the location: {path}")
+        return False
+    logging.info(f"datasets available: {os.listdir(path)}")
+    return True
+    
+def end_execution(message: str) -> None:
+    """Logs error message and terminates the job."""
+    logging.error(message)
+    sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -42,18 +62,16 @@ if __name__ == "__main__":
     log4j_properties_path = os.getenv('LOG4J_PROPIERTIES')
     output_path = os.getenv('OUTPUT_DIRECTORY')
     debug = os.getenv('DEBUG', 'false').lower() in ('true', '1')
-
-    if debug:
-        logging.info(f"DEBUG MODE: ON")
+    bucket = os.getenv('BUCKET', None)
 
     # check if the dataset is accessible
-    if not os.path.exists(dataset_path):
-        logging.error(f"Requested dataset path - {dataset_path} - was not found.")
-        sys.exit(1)
-    elif filename not in os.listdir(dataset_path):
-        logging.error(f"Requested file - {filename} - was not found at the location: {dataset_path}")
-        sys.exit(1)
-    logging.info(f"datasets available: {os.listdir(dataset_path)}")
+    if debug:
+        logging.info(f"DEBUG MODE: ON")
+        input_validation = verify_path_gcs(bucket_id=bucket, path=dataset_path)
+    else:
+        input_validation = verify_path_local(path=dataset_path, filename=filename)
+    if not input_validation:
+        end_execution("Dataset validation failed, exiting job.") 
     
     try:
         spark = SparkSession.builder.\
@@ -64,9 +82,9 @@ if __name__ == "__main__":
         #spark.sparkContext.setLogLevel("WARN")
         logging.info('Spark Session created successfully.')
     except Exception as e:
-        logging.error(f"Problem loading Spark, details:\n{e}")
-        logging.warning("Shutting down...")
-        sys.exit(1)
+        end_execution(f"Problem loading Spark, details:\n{e}")
+        
+        
 
 
     # define schema of data to be read
@@ -96,17 +114,18 @@ if __name__ == "__main__":
     # enable to test/preview the processed data
     #count_animes.show(n=10, truncate=False)
 
-    output_path = os.path.join(output_path,'result_count_animes')
+    output = os.path.join(output_path,'result_count_animes')
     
     count_animes.write\
         .format('csv')\
         .option('header', 'true')\
         .mode('overwrite')\
-        .save(output_path)
+        .save(output)
 
     # End the Spark Session
     try:
         spark.stop()
         logging.info("Finalized Spark Session.")
+        sys.exit(0)
     except Exception as e:
         logging.warning(f"Problem closing the Spark Session, details:\n{e}")
