@@ -1,18 +1,30 @@
 import os, sys
+import datetime
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
+import logging
+from google.cloud import storage
+
 
 
 if __name__ == "__main__":
     load_dotenv()
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     # check if datasets are available
-    animes = os.getenv('DATASET_ANIMES')
+    dataset_path = os.getenv('DATASET_PATH')
+    filename = os.getenv('DATASET_ANIMES')
     log4j_properties_path = os.getenv('LOG4J_PROPIERTIES')
     output_path = os.getenv('OUTPUT_DIRECTORY')
 
-
-    print(f"datasets available: {os.listdir('../../datasets/kaggle_anime-recommendation-db')}")
+    # check if the dataset is accessible
+    if not os.path.exists(dataset_path):
+        logging.error(f"Requested dataset path - {dataset_path} - was not found.")
+        sys.exit(1)
+    elif filename not in os.listdir(dataset_path):
+        logging.error(f"Requested file - {filename} - was not found at the location: {dataset_path}")
+        sys.exit(1)
+    logging.info(f"datasets available: {os.listdir(dataset_path)}")
     
     try:
         spark = SparkSession.builder.\
@@ -21,9 +33,10 @@ if __name__ == "__main__":
                     .getOrCreate()
         # Set log level to WARN
         #spark.sparkContext.setLogLevel("WARN")
+        logging.info('Spark Session created successfully.')
     except Exception as e:
-        print(f"Problem loading Spark, details:\n{e}")
-        print("Shutting down...")
+        logging.error(f"Problem loading Spark, details:\n{e}")
+        logging.warning("Shutting down...")
         sys.exit(1)
 
 
@@ -40,20 +53,19 @@ if __name__ == "__main__":
     df = spark.read.format('csv')\
     .option('header', 'true') \
     .schema(animes_schema) \
-    .load(animes)
+    .load(os.path.join(dataset_path, filename))
 
     # Convert the 'Score' column to double, setting non-numeric values to null
-    df = df.withColumn("score", when(col("score").rlike("^\d+(\.\d+)?$"), col("score").cast("double")).otherwise(None))
+    #df = df.withColumn("Score", when(col("Score").rlike("^\d+(\.\d+)?$"), col("Score").cast("double")).otherwise(None))
 
     # group by anime and count records
     count_animes = (df
-                .select('MAL_ID', 'name', 'score')
-                .groupBy('name')
-                .avg('score')
-                .orderBy('avg(score)', ascending=False)
+                .select('MAL_ID', 'Name', 'Score', 'Episodes', 'Members', 'Completed', 'Dropped')
+                .orderBy('Score', ascending=False)
                 )
     
-    count_animes.show(n=10, truncate=False)
+    # enable to test/preview the processed data
+    #count_animes.show(n=10, truncate=False)
 
     output_path = os.path.join(output_path,'result_count_animes')
     
@@ -66,6 +78,6 @@ if __name__ == "__main__":
     # End the Spark Session
     try:
         spark.stop()
-        print("Stopped Spark Session")
+        logging.info("Finalized Spark Session.")
     except Exception as e:
-        print(f"Problem closing the Spark Session, details:\n{e}")
+        logging.warning(f"Problem closing the Spark Session, details:\n{e}")
