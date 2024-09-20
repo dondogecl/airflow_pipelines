@@ -6,6 +6,31 @@ from pyspark.sql.functions import col, when
 import logging
 from google.cloud import storage
 
+def verify_path_gcs(bucket_id: str, path: str) -> bool:
+    """Verifies if the provided bucket and path exist.
+    
+    Args:
+        bucket_id (str): The ID of the GCS bucket
+        path (str): location of the files inside the bucket (folders or path)
+    Returns:
+        bool : True only if the location is valid."""
+    client = storage.Client()
+    bucket_name = bucket_id
+    try:
+        bucket = client.get_bucket(bucket_name)
+    except Exception as e:
+        logging.error(f'Bucket name: - {bucket_id} - was not found or cannot correct. Details:\n{e}')
+        return False
+    # get blobs
+    files = list(bucket.list_blobs(prefix=path))
+    # validate if the file exists in the bucket
+    if not files:
+        logging.error(f"No files found in the GCS provided - {bucket_id} / {path} -")
+        return False
+    logging.info('File found at the specified GCS location: {path}')
+    return True
+    
+        
 
 
 if __name__ == "__main__":
@@ -16,6 +41,10 @@ if __name__ == "__main__":
     filename = os.getenv('DATASET_ANIMES')
     log4j_properties_path = os.getenv('LOG4J_PROPIERTIES')
     output_path = os.getenv('OUTPUT_DIRECTORY')
+    debug = os.getenv('DEBUG', 'false').lower() in ('true', '1')
+
+    if debug:
+        logging.info(f"DEBUG MODE: ON")
 
     # check if the dataset is accessible
     if not os.path.exists(dataset_path):
