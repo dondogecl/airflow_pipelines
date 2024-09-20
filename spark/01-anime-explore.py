@@ -27,10 +27,19 @@ if __name__ == "__main__":
         sys.exit(1)
 
 
+    # define schema of data to be read
+    animes_schema = '`MAL_ID` INT, `Name` STRING, `Score` DOUBLE, `Genres` STRING, `English name` STRING,\
+        `Japanese name` STRING, `Type` STRING, `Episodes` INT, `Aired` STRING, `Premiered` STRING,\
+            `Producers` STRING, `Licensors` STRING, `Studios` STRING, `Source` STRING, `Duration` STRING,\
+                `Rating` STRING, `Ranked` DOUBLE, `Popularity` INT, `Members` INT, `Favorites` INT,\
+                    `Watching` INT, `Completed` INT, `On-Hold` INT, `Dropped` INT, `Plan to Watch` INT,\
+                         `Score-10` INT, `Score-9` INT, `Score-8` INT, `Score-7` INT, `Score-6` INT,\
+                             `Score-5` INT, `Score-4` INT, `Score-3` INT, `Score-2` INT, `Score-1` INT'
+    
     # read dataframe data
     df = spark.read.format('csv')\
-    .option('header', 'true')\
-    .option('inferSchema', 'true')\
+    .option('header', 'true') \
+    .schema(animes_schema) \
     .load(animes)
 
     # Convert the 'Score' column to double, setting non-numeric values to null
