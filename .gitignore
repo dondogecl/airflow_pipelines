@@ -168,3 +168,26 @@ airflow/airflow.cfg
 config/
 __pycache__/
 spark/output/*
+
+# terraform
+
+# Local Terraform state
+*.tfstate
+*.tfstate.*
+.tfvars
+*.tfvars
+# Core Terraform files and logs
+.crash
+.terraform/
+.terraform.lock.hcl
+.terraform.tfstate.lock.info
+tfplan
+# Ignore override files as they are usually local changes
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore any CLI configuration files
+.terraformrc
+terraform.rc
